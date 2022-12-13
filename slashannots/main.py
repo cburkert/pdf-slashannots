@@ -88,8 +88,9 @@ class PdfAnnotationRedacter:
         reader = PyPDF2.PdfReader(infile)  # type: ignore
         writer = PyPDF2.PdfWriter()
         for page in reader.pages:
-            for annot in page.get("/Annots", []):  # type: ignore
-                self.redact_annotation(annot)
+            if "/Annots" in page:
+                for annot in page["/Annots"]:  # type: ignore
+                    self.redact_annotation(annot)
             # add page to writer
             writer.add_page(page)
         # write new pdf
