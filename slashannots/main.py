@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 import enum
 import logging
+import sys
 from typing import *
 
 import PyPDF2
@@ -38,6 +39,33 @@ class DatePrecision(enum.IntEnum):
             return s
 
 
+class AnnotationStats:
+    def __init__(self) -> None:
+        self.authorship_ctr: Counter[str] = Counter()
+        self.redacted_authorships: Counter[str] = Counter()
+        self.redacted_cdates: Counter[str] = Counter()
+        self.redacted_mdates: Counter[str] = Counter()
+
+    def pprint_stats(self, out=sys.stdout) -> None:
+        authors = set(self.authorship_ctr.keys())
+        assert authors.issuperset(self.redacted_authorships.keys())
+        assert authors.issuperset(self.redacted_cdates.keys())
+        assert authors.issuperset(self.redacted_mdates.keys())
+        lines = [
+            (
+                f"{author}: {self.authorship_ctr[author]} annots, "
+                f"redacted {self.redacted_authorships[author]} names, "
+                f"{self.redacted_cdates[author]} cdates, "
+                f"{self.redacted_mdates[author]} mdates"
+            )
+            for author in sorted(authors)
+        ]
+        out.writelines(lines)
+        if lines:
+            # finish output with newline
+            out.write("\n")
+
+
 class PdfAnnotationRedacter:
     def __init__(
         self,
@@ -50,7 +78,7 @@ class PdfAnnotationRedacter:
         self.redact_author = redact_author
         self.precision = precision
         self.redacted_author = redacted_author_name
-        self.stats: Counter[str] = Counter()
+        self.stats = AnnotationStats()
 
     @property
     def is_clear_all(self) -> bool:
@@ -80,11 +108,13 @@ class PdfAnnotationRedacter:
         # check redact author
         if "/T" in obj:
             author = obj["/T"]
+            self.stats.authorship_ctr[author] += 1
             if not self.is_clear_all and author not in self.included_authors:
                 # this author should not be redacted nor any of their metadata
                 return
             if self.redact_author:
                 obj[NameObject("/T")] = TextStringObject(self.redacted_author)
+                self.stats.redacted_authorships[author] += 1
         else:
             # No author information for this type of Annotation
             logger.debug("No author for %s", subtype)
@@ -98,10 +128,12 @@ class PdfAnnotationRedacter:
         # redact dates
         if "/CreationDate" in obj:
             self.redact_date(obj, "/CreationDate")
+            self.stats.redacted_cdates[author] += 1
         else:
             logger.debug("No creation date for %s", subtype)
         if "/M" in obj:
             self.redact_date(obj, "/M")
+            self.stats.redacted_mdates[author] += 1
         else:
             logger.debug("No modification date for %s", subtype)
 
@@ -158,6 +190,7 @@ def main():
         redacted_author_name=args.redacted_author_name,
     )
     redacter.redact(args.input, args.output)
+    redacter.stats.pprint_stats()
 
 
 if __name__ == "__main__":
