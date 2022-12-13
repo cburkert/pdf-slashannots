@@ -5,6 +5,7 @@ import logging
 from typing import *
 
 import PyPDF2
+from PyPDF2.generic import NameObject, TextStringObject
 
 
 logger = logging.getLogger(__name__)
@@ -56,19 +57,19 @@ class PdfAnnotationRedacter:
         return not self.included_authors  # no filter given
 
     def redact(self, infile: BinaryIO, outfile: BinaryIO):
-        reader = PyPDF2.PdfReader(infile)
+        reader = PyPDF2.PdfReader(infile)  # type: ignore
         writer = PyPDF2.PdfWriter()
         for page in reader.pages:
             if "/Annots" not in page:
                 # no annotation on that page
                 continue
-            for annot in page["/Annots"]:
+            for annot in page["/Annots"]:  # type: ignore
                 self.redact_annotation(annot)
             # add page to writer
             writer.add_page(page)
         # write new pdf
         with outfile:
-            writer.write(outfile)
+            writer.write(outfile)  # type: ignore
 
     def redact_annotation(self, annotation):
         obj = annotation.get_object()
@@ -83,9 +84,7 @@ class PdfAnnotationRedacter:
                 # this author should not be redacted nor any of their metadata
                 return
             if self.redact_author:
-                obj[PyPDF2.generic.NameObject("/T")] = PyPDF2.generic.TextStringObject(
-                    self.redacted_author
-                )
+                obj[NameObject("/T")] = TextStringObject(self.redacted_author)
         else:
             # No author information for this type of Annotation
             logger.debug("No author for %s", subtype)
@@ -107,7 +106,7 @@ class PdfAnnotationRedacter:
             logger.debug("No modification date for %s", subtype)
 
     def redact_date(self, obj: PyPDF2.generic.PdfObject, date_type: str):
-        date = parse_date(obj[date_type])
+        date = parse_date(obj[date_type])  # type: ignore
         if self.precision < DatePrecision.MICRO:
             date = date.replace(microsecond=0)
         if self.precision < DatePrecision.SECOND:
@@ -122,9 +121,7 @@ class PdfAnnotationRedacter:
             date = date.replace(month=1)
         if self.precision < DatePrecision.YEAR:
             date = date.replace(year=1970)
-        obj[PyPDF2.generic.NameObject(date_type)] = PyPDF2.generic.TextStringObject(
-            format_date(date)
-        )
+        obj[NameObject(date_type)] = TextStringObject(format_date(date))  # type: ignore
 
 
 def parse_date(rdate: str) -> datetime:
