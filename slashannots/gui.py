@@ -1,4 +1,5 @@
 """Tkinter GUI for pdf-slashannots"""
+import argparse
 import os
 import os.path
 import io
@@ -16,7 +17,7 @@ from .main import PdfAnnotationRedacter, DatePrecision
 
 
 class SlashAnnotsGUI(Tk):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, pdffile: Optional[BinaryIO], *args, **kwargs) -> None:
         Tk.__init__(self, *args, **kwargs)
         title = "pdf-slashannots"
         self.title(title)
@@ -64,7 +65,6 @@ class SlashAnnotsGUI(Tk):
             command=self.select_pdf,
         )
         open_button.pack(side=BOTTOM)
-        self.pdfpath: Optional[Path] = None
         # also offer shortcuts
         self.bind("<Control-o>", lambda e: self.select_pdf())
         self.bind("<Meta_L><o>", lambda e: self.select_pdf())
@@ -102,6 +102,11 @@ class SlashAnnotsGUI(Tk):
         name_list.config(yscrollcommand=yscroll.set)
         yscroll.config(command=name_list.yview)
 
+        # init with optionally given PDF
+        pdfpath: Optional[Path] = Path(pdffile.name) if pdffile else None
+        if pdfpath:
+            self.set_pdf(pdfpath)
+
     def select_pdf(self):
         filetypes = (
             ('PDF files', '*.pdf'),
@@ -114,7 +119,10 @@ class SlashAnnotsGUI(Tk):
         )
         if not filename:
             return  # do nothing on cancel
-        self.pdfpath = Path(filename)
+        self.set_pdf(Path(filename))
+
+    def set_pdf(self, pdfpath: Path):
+        self.pdfpath = pdfpath
         self.file_label.config(text=self.pdfpath.name)
         names = get_names(self.pdfpath)
         self.name_list.delete(0, END)  # clear box
@@ -168,7 +176,10 @@ def get_names(pdffile: Path) -> List[str]:
 
 
 def main():
-    app = SlashAnnotsGUI()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdffile", type=argparse.FileType("rb"), nargs="?")
+    args = parser.parse_args()
+    app = SlashAnnotsGUI(args.pdffile)
     app.mainloop()
 
 
