@@ -1,5 +1,6 @@
 """Tkinter GUI for pdf-slashannots"""
 import argparse
+import importlib.resources as ir
 import os
 import os.path
 import io
@@ -22,7 +23,9 @@ class SlashAnnotsGUI(Tk):
         title = "pdf-slashannots"
         self.title(title)
         self.minsize(400, 200)
-        icon = PhotoImage(file="icon-trans.png")
+        iconres = ir.files("slashannots").joinpath("icon-trans.png")
+        with ir.as_file(iconres) as iconfile:
+            icon = PhotoImage(file=iconfile)
         self.iconphoto(True, icon)
 
         menubar = Menu(self)
