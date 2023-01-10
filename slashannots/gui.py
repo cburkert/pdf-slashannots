@@ -22,6 +22,8 @@ class SlashAnnotsGUI(Tk):
         title = "pdf-slashannots"
         self.title(title)
         self.minsize(400, 200)
+        icon = PhotoImage(file="icon-trans.png")
+        self.iconphoto(True, icon)
 
         menubar = Menu(self)
         filemenu = Menu(menubar, tearoff=0)
