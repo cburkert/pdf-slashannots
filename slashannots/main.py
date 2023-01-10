@@ -164,7 +164,9 @@ def format_date(date: datetime) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("input", type=argparse.FileType("rb"),
                         help="PDF input file")
     parser.add_argument("output", type=argparse.FileType("wb"),
