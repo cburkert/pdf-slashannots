@@ -78,13 +78,17 @@ class SlashAnnotsGUI(Tk):
         set_frame = ttk.Frame(left_frame)
         set_frame.pack(side=BOTTOM, pady=10)
         prec_label = ttk.Label(set_frame, text="Precision", padding=5)
-        prec_label.pack(side=LEFT)
+        prec_label.grid(row=1, column=1)
         prec_drop = ttk.Combobox(set_frame, width=10,
                                  values=[str(prec) for prec in DatePrecision],
                                  state="readonly")
-        prec_drop.pack(side=RIGHT)
+        prec_drop.grid(row=1, column=2)
         prec_drop.set("hour")
         self.prec_drop = prec_drop
+        self.rednames_var = BooleanVar(value=False)
+        rednames_chk = ttk.Checkbutton(set_frame, text="Redact names",
+                                       variable=self.rednames_var)
+        rednames_chk.grid(row=2, column=1, columnspan=2)
 
         # name frame (right)
         name_frame = ttk.Frame(main_frame)
@@ -156,6 +160,7 @@ class SlashAnnotsGUI(Tk):
         precision = self.prec_drop.get()
         redacter = PdfAnnotationRedacter(
             included_authors=authors,
+            redact_author=self.rednames_var.get(),
             precision=DatePrecision.argparse(precision),
         )
         outpath = self.pdfpath.with_suffix(".redacted.pdf")
