@@ -14,7 +14,7 @@ from typing import *
 
 import PyPDF2
 
-from .main import PdfAnnotationRedacter, DatePrecision
+from .main import PdfAnnotationRedacter, AnnotationStats, DatePrecision
 
 
 class SlashAnnotsGUI(Tk):
@@ -161,10 +161,45 @@ class SlashAnnotsGUI(Tk):
         outpath = self.pdfpath.with_suffix(".redacted.pdf")
         with self.pdfpath.open("rb") as pdffp, outpath.open("wb") as outfp:
             redacter.redact(pdffp, outfp)
-        statsout = io.StringIO()
-        redacter.stats.pprint_stats(statsout)
-        text = statsout.getvalue()
-        tkmsg.showinfo("Redaction successful", text, icon="info")
+        stats = redacter.stats
+        resview = ResultView(outpath, stats)
+        resview.mainloop()
+
+
+class ResultView(Toplevel):
+    def __init__(self, outpath: Path, stats: AnnotationStats, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.title("Redaction result")
+        self.minsize(400, 200)
+        frame = ttk.Frame(self, padding=5)
+        frame.pack()
+        tree = ttk.Treeview(frame, columns=("annots", "nreds", "dreds"))
+        tree.pack(side=TOP, fill=BOTH, expand=True)
+        tree.column('annots', width=100, anchor='center')
+        tree.heading('annots', text='Annotations')
+        tree.column('nreds', width=100, anchor='center')
+        tree.heading('nreds', text='Redact. Names')
+        tree.column('dreds', width=100, anchor='center')
+        tree.heading('dreds', text='Redact. Dates')
+        # fill tree
+        authors = set(stats.authorship_ctr.keys())
+        for author in sorted(authors):
+            tree.insert("", END, text=author, values=(
+                stats.authorship_ctr[author],
+                stats.redacted_authorships[author],
+                stats.redacted_cdates[author],
+            ))
+        outframe = ttk.Frame(frame)
+        outpathlabel = ttk.Label(outframe, text=f"Output:")
+        outpathlabel.pack(side=LEFT)
+        outpathvar = StringVar(value=str(outpath))
+        outpathentry = Entry(outframe, state="readonly",
+                             width=80,
+                             textvariable=outpathvar)
+        outpathentry.pack(side=RIGHT, fill=X, expand=True)
+        outframe.pack()
+        closebtn = ttk.Button(frame, text="Close", command=self.destroy)
+        closebtn.pack(side=BOTTOM)
 
 
 def get_names(pdffile: Path) -> List[str]:
