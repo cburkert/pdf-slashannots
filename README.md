@@ -36,3 +36,5 @@ features like
 - specify the precision to which the dates are reduced
 - redact also the authors' name
 
+Or, if you prefer a graphical interface, there is also `pdf-slashannots-gui`
+based on Python Tkinter.
