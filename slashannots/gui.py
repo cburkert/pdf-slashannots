@@ -41,7 +41,7 @@ class SlashAnnotsGUI(Tk):
         main_frame.pack(expand=True,fill=BOTH)
         # bottom controls
         bottom_frame = ttk.Frame(main_frame)
-        bottom_frame.pack(side=BOTTOM)
+        bottom_frame.pack(side=BOTTOM, pady=5)
         quit_btn = ttk.Button(bottom_frame, text="Quit", command=self.destroy)
         quit_btn.pack(side=RIGHT)
         redactall_btn = ttk.Button(bottom_frame, text="Redact all",
@@ -104,12 +104,17 @@ class SlashAnnotsGUI(Tk):
 
         # name frame (right)
         name_frame = ttk.Frame(main_frame)
-        name_frame.pack(side=RIGHT)
+        name_frame.pack(side=RIGHT, padx=5)
         name_label = ttk.Label(name_frame, text="Select Author(s)")
         name_label.pack(side=TOP)
         yscroll = ttk.Scrollbar(name_frame, orient=VERTICAL)
         yscroll.pack(side=RIGHT, fill="y")
-        name_list = Listbox(name_frame, selectmode=MULTIPLE, border=0)
+        list_wrapper = Frame(name_frame, bg="white")
+        list_wrapper.pack(side=LEFT, fill=BOTH, expand=True)
+        name_list = Listbox(list_wrapper, selectmode=MULTIPLE, border=0,
+                            bg=list_wrapper.cget("bg"))
+        self.name_list = name_list
+        name_list.pack(fill=BOTH, expand=True, padx=5, pady=5)
         def name_list_update(event: Event):
             selection = event.widget.curselection()
             if selection:
@@ -117,9 +122,6 @@ class SlashAnnotsGUI(Tk):
             else:
                 self.disallow_selected()
         name_list.bind("<<ListboxSelect>>", name_list_update)
-
-        self.name_list = name_list
-        name_list.pack(side=LEFT, fill=BOTH, expand=True)
         name_list.config(yscrollcommand=yscroll.set)
         yscroll.config(command=name_list.yview)
 
