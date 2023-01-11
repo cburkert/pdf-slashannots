@@ -1,5 +1,6 @@
 """Tkinter GUI for pdf-slashannots"""
 import argparse
+from collections import Counter
 import importlib.resources as ir
 import os
 import os.path
@@ -69,10 +70,14 @@ class SlashAnnotsGUI(Tk):
             text='Select PDF',
             command=self.select_pdf,
         )
-        open_button.pack(side=BOTTOM)
+        open_button.pack()
         # also offer shortcuts
         self.bind("<Control-o>", lambda e: self.select_pdf())
         self.bind("<Meta_L><o>", lambda e: self.select_pdf())
+        self.pdfstats_var = StringVar(value="test")
+        stats_label = ttk.Label(file_frame, textvariable=self.pdfstats_var,
+                                justify=CENTER)
+        stats_label.pack(side=BOTTOM)
 
         # - settings frame
         set_frame = ttk.Frame(left_frame)
@@ -104,7 +109,7 @@ class SlashAnnotsGUI(Tk):
 
         # name frame (right)
         name_frame = ttk.Frame(main_frame)
-        name_frame.pack(side=RIGHT, padx=5)
+        name_frame.pack(side=RIGHT, padx=10)
         name_label = ttk.Label(name_frame, text="Select Author(s)")
         name_label.pack(side=TOP)
         yscroll = ttk.Scrollbar(name_frame, orient=VERTICAL)
@@ -147,12 +152,23 @@ class SlashAnnotsGUI(Tk):
     def set_pdf(self, pdfpath: Path):
         self.pdfpath = pdfpath
         self.file_label.config(text=self.pdfpath.name)
-        names = get_names(self.pdfpath)
+        names_ctr = get_names(self.pdfpath)
+        names = list(sorted(names_ctr.keys()))
         self.name_list.delete(0, END)  # clear box
         for i, name in enumerate(names):
             self.name_list.insert(i, name)
         # enable buttons
         self.redactall_btn["state"] = NORMAL
+        # update stats info
+        total = names_ctr.total()
+        if total > 0:
+            self.pdfstats_var.set(" ".join((
+                plural(total, "annotation"),
+                "from",
+                plural(len(names), "author"),
+            )))
+        else:
+            self.pdfstats_var.set("0 annotations")
 
     def allow_selected(self):
         self.redactsel_btn["state"] = NORMAL
@@ -222,17 +238,23 @@ class ResultView(Toplevel):
         closebtn.pack(side=BOTTOM)
 
 
-def get_names(pdffile: Path) -> List[str]:
+def get_names(pdffile: Path) -> Counter[str]:
     reader = PyPDF2.PdfReader(pdffile)  # type: ignore
-    authors: Set[str] = set()
+    authors_ctr: Counter[str] = Counter()
     for page in reader.pages:
         if "/Annots" in page:
             for annot in page["/Annots"]:  # type: ignore
                 obj = annot.get_object()
                 if "/T" in obj:
                     author = obj["/T"]
-                    authors.add(author)
-    return list(sorted(authors))
+                    authors_ctr[author] += 1
+    return authors_ctr
+
+
+def plural(num: int, thing: str) -> str:
+    if num == 1:
+        return f"1 {thing}"
+    return f"{num} {thing}s"
 
 
 def main():
