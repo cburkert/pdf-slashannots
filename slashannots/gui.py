@@ -85,10 +85,22 @@ class SlashAnnotsGUI(Tk):
         prec_drop.grid(row=1, column=2)
         prec_drop.set("hour")
         self.prec_drop = prec_drop
-        self.rednames_var = BooleanVar(value=False)
-        rednames_chk = ttk.Checkbutton(set_frame, text="Redact names",
-                                       variable=self.rednames_var)
+        self.rednames_chk = BooleanVar(value=False)
+        rednames_chk = ttk.Checkbutton(set_frame, text="Replace names with",
+                                       variable=self.rednames_chk)
         rednames_chk.grid(row=2, column=1, columnspan=2)
+        self.redname_rpl = StringVar(value="unknown")
+        redname_entry = ttk.Entry(set_frame, width=20, justify=CENTER,
+                                  state=DISABLED,
+                                  textvariable=self.redname_rpl)
+        redname_entry.grid(row=3, column=1, columnspan=2)
+        def change_redname_state(*args) -> None:
+            del args  # not needed
+            if self.rednames_chk.get():
+                redname_entry["state"] = NORMAL
+            else:
+                redname_entry["state"] = DISABLED
+        self.rednames_chk.trace_add("write", change_redname_state)
 
         # name frame (right)
         name_frame = ttk.Frame(main_frame)
@@ -160,7 +172,8 @@ class SlashAnnotsGUI(Tk):
         precision = self.prec_drop.get()
         redacter = PdfAnnotationRedacter(
             included_authors=authors,
-            redact_author=self.rednames_var.get(),
+            redact_author=self.rednames_chk.get(),
+            redacted_author_name=self.redname_rpl.get(),
             precision=DatePrecision.argparse(precision),
         )
         outpath = self.pdfpath.with_suffix(".redacted.pdf")
